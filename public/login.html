@@ -1,0 +1,63 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Login / Register</title>
+  <style>
+    body { background:#121212; color:#ddd; font-family:system-ui; display:flex; align-items:center; justify-content:center; height:100vh; margin:0; }
+    .card { width:340px; padding:18px; border-radius:12px; background:#0f0f0f; box-shadow:0 8px 24px rgba(0,0,0,.6); }
+    input { width:100%; padding:10px; margin-top:8px; border-radius:8px; border:1px solid #222; background:#111; color:#eee; }
+    button { width:48%; padding:10px; margin-top:12px; border-radius:8px; border:0; color:white; background:#4caf50; cursor:pointer; }
+    button.secondary { background:#1976d2; float:right; }
+    .hint { color:#8b8b8b; font-size:13px; margin-top:10px; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h2>Sign in</h2>
+    <input id="username" placeholder="username" />
+    <input id="password" placeholder="password" type="password" />
+    <div style="display:flex; gap:8px;">
+      <button id="loginBtn">Log in</button>
+      <button id="regBtn" class="secondary">Register</button>
+    </div>
+    <div class="hint">If you are registering, choose a username and password.</div>
+    <div id="msg" style="margin-top:10px;color:#f88"></div>
+  </div>
+
+  <script>
+    async function doAuth(action) {
+      const username = document.getElementById('username').value.trim();
+      const password = document.getElementById('password').value;
+      const msg = document.getElementById('msg');
+      msg.textContent = '';
+      if (!username) { msg.textContent = 'username required'; return; }
+      if (action === 'register' && !password) { msg.textContent = 'password required to register'; return; }
+      try {
+        const res = await fetch('/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password, action })
+        });
+        const j = await res.json();
+        if (!res.ok) {
+          msg.textContent = j.error || 'error';
+          return;
+        }
+        // success: cookie set by server; redirect to chat
+        window.location.href = '/chat';
+      } catch (e) {
+        msg.textContent = 'network error';
+      }
+    }
+
+    document.getElementById('loginBtn').onclick = () => doAuth('login');
+    document.getElementById('regBtn').onclick = () => doAuth('register');
+
+    // if already have cookie, go to chat immediately (best-effort)
+    if (document.cookie.match(/username=/)) {
+      window.location.href = '/chat';
+    }
+  </script>
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Admin Panel</title>
+  <style>
+    body{font-family:system-ui;background:#121212;color:#eee;padding:20px}
+    table{border-collapse:collapse;width:100%}
+    th,td{padding:8px;border:1px solid #333}
+    input,select{padding:6px;border-radius:6px;background:#111;color:#eee;border:1px solid #222}
+    button{padding:6px 8px;border-radius:6px;background:#4caf50;border:0;color:#fff}
+  </style>
+</head>
+<body>
+  <h1>Admin Panel</h1>
+  <div id="out"></div>
+  <table id="usersTable">
+    <thead><tr><th>Username</th><th>Role</th><th>Actions</th></tr></thead>
+    <tbody></tbody>
+  </table>
+
+  <script>
+    async function loadUsers() {
+      const res = await fetch('/api/users');
+      if (!res.ok) { document.body.innerHTML = '<h2>Access denied.</h2>'; return; }
+      const users = await res.json();
+      const tbody = document.querySelector('#usersTable tbody');
+      tbody.innerHTML = '';
+      for (const u of users) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${u.username}</td>
+          <td>
+            <select data-user="${u.username}">
+              <option value="user" ${u.role==='user'?'selected':''}>user</option>
+              <option value="admin" ${u.role==='admin'?'selected':''}>admin</option>
+            </select>
+          </td>
+          <td>
+            <input placeholder="new password" data-pass="${u.username}">
+            <button data-set="${u.username}">Set Password</button>
+            <button data-role="${u.username}">Set Role</button>
+          </td>`;
+        tbody.appendChild(tr);
+      }
+      attachHandlers();
+    }
+
+    function attachHandlers(){
+      document.querySelectorAll('button[data-set]').forEach(btn=>{
+        btn.onclick = async () => {
+          const user = btn.getAttribute('data-set');
+          const pass = document.querySelector(`input[data-pass="${user}"]`).value;
+          if (!pass) return alert('enter password');
+          const res = await fetch('/api/user/set-password', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: user, password: pass })});
+          if (res.ok) alert('password set');
+          else alert('failed');
+        };
+      });
+      document.querySelectorAll('button[data-role]').forEach(btn=>{
+        btn.onclick = async () => {
+          const user = btn.getAttribute('data-role');
+          const sel = document.querySelector(`select[data-user="${user}"]`);
+          const role = sel.value;
+          const res = await fetch('/api/user/set-role', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ username: user, role })});
+          if (res.ok) alert('role updated');
+          else alert('failed');
+        };
+      });
+    }
+
+    loadUsers();
+  </script>
+</body>
+</html>

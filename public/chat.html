@@ -1,0 +1,70 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>Chat</title>
+  <style>
+    html,body{height:100%;margin:0;background:#0b0b0b;color:#ddd;font-family:system-ui}
+    #wrap{max-width:800px;margin:12px auto;padding:12px;background:#0f0f0f;border-radius:10px}
+    #messages{height:400px;overflow:auto;background:#070707;padding:12px;border-radius:8px}
+    .msg{padding:8px;border-bottom:1px solid rgba(255,255,255,0.02)}
+    #composer{display:flex;gap:8px;margin-top:8px}
+    input[type="text"]{flex:1;padding:10px;border-radius:8px;border:1px solid #222;background:#111;color:#eee}
+    button{padding:10px 14px;border-radius:8px;border:0;background:#4caf50;color:#fff}
+  </style>
+</head>
+<body>
+  <div id="wrap">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <h3>Chat</h3>
+      <form id="logoutForm" method="post" action="/logout" style="margin:0">
+        <button type="button" id="logoutBtn" style="background:#b33">Logout</button>
+      </form>
+    </div>
+
+    <div id="messages"></div>
+
+    <div id="composer">
+      <input id="text" type="text" placeholder="Say something…" />
+      <button id="send">Send</button>
+    </div>
+  </div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    if (!document.cookie.match(/username=/)) {
+      window.location.href = "/login.html";
+    }
+
+    const socket = io();
+    const messagesEl = document.getElementById('messages');
+    const textEl = document.getElementById('text');
+
+    function addMessage(m) {
+      const d = new Date(m.ts || Date.now());
+      const el = document.createElement('div');
+      el.className = 'msg';
+      el.innerHTML = `<div style="font-size:12px;color:#aaa">${m.user} • ${d.toLocaleTimeString()}</div><div>${escapeHtml(m.text)}</div>`;
+      messagesEl.appendChild(el);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+    function escapeHtml(s){return (''+s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+
+    socket.on('history', h => { messagesEl.innerHTML=''; h.forEach(addMessage); });
+    socket.on('message', addMessage);
+
+    document.getElementById('send').onclick = () => {
+      const txt = textEl.value.trim(); if (!txt) return;
+      socket.emit('message', txt);
+      textEl.value = '';
+    };
+    textEl.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('send').click(); });
+
+    document.getElementById('logoutBtn').onclick = async () => {
+      await fetch('/logout', { method: 'POST' });
+      document.cookie = 'username=; Max-Age=0; path=/';
+      window.location.href = '/login.html';
+    };
+  </script>
+</body>
+</html>
